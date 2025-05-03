@@ -1,11 +1,46 @@
-node {
-  stage('SCM') {
-    checkout scm
-  }
-  stage('SonarQube Analysis') {
-    def mvn = tool 'Default Maven';
-    withSonarQubeEnv() {
-      sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=dcm4chee-arc-light"
+sqp_06d8b9ba27ec56f408bbe16beef13ba4a6b66ca5
+
+pipeline {
+   agent any
+   
+      tools {
+          maven 'maven'
+      }
+      
+            environment {
+              SONAR_PROJECT_KEY = 'dcm4chee-arc-light'
+              SONAR_SCANNER_HOME = 'SonarQubeScanner'
+            }
+            
+    stages {
+        stage('Checkout') {
+            steps {
+               echo 'Cloning GIT HUB Repo'
+               git branch: 'master', url: 'https://github.com/srikanth615/dcm4chee-arc-light.git'
+           }
+         }
+         
+             stage('Build') {
+            steps {
+                sh 'mvn compile'
+            }
+        }
+        
+        stage('Test') {
+                 steps {
+                     shell "python -m unittest discover -s ./tests -p '*_test.py'"
+              }
+        }
+        
+        stage('SonarQube Analysis') {
+            steps {
+                withCredentials([string(credentialsId: 'dcm4chee-arc-light-token', variable: 'SONAR_TOKEN')]) {
+                          withSonarQubeEnv('SonarQube') {
+                              sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=dcm4chee-arc-light"
+					
+                   }
+                }
+            }
+   
     }
-  }
-}
+ }
